@@ -556,6 +556,12 @@ function normalizeGeocodeItem(item, query) {
 
 // ── Draggable modal ────────────────────────────────────────────────────────────
 let _modalPositioned = false;
+const isMobile = () => window.innerWidth <= 600;
+
+// Reset desktop positioning when resizing across breakpoint
+window.addEventListener("resize", () => {
+  if (isMobile()) { _modalPositioned = false; }
+});
 
 function initModalDrag() {
   const handle = el.modalDragHandle;
@@ -567,28 +573,50 @@ function initModalDrag() {
     if (document.activeElement === el.modalCloseBtn) return;
     dragging = true;
     startX = clientX; startY = clientY;
-    startLeft = parseInt(modal.style.left, 10) || modal.getBoundingClientRect().left;
-    startTop  = parseInt(modal.style.top,  10) || modal.getBoundingClientRect().top;
-    handle.style.cursor = "grabbing";
+    if (isMobile()) {
+      startTop = 0;
+    } else {
+      startLeft = parseInt(modal.style.left, 10) || modal.getBoundingClientRect().left;
+      startTop  = parseInt(modal.style.top,  10) || modal.getBoundingClientRect().top;
+      handle.style.cursor = "grabbing";
+    }
   }
 
   function moveDrag(clientX, clientY) {
     if (!dragging) return;
-    const dx = clientX - startX;
-    const dy = clientY - startY;
-    const maxLeft = window.innerWidth  - modal.offsetWidth;
-    const maxTop  = window.innerHeight - modal.offsetHeight;
-    modal.style.left  = `${Math.max(0, Math.min(maxLeft, startLeft + dx))}px`;
-    modal.style.top   = `${Math.max(0, Math.min(maxTop,  startTop  + dy))}px`;
-    modal.style.right     = "auto";
-    modal.style.transform = "none";
+    if (isMobile()) {
+      // Bottom sheet: only track downward drag
+      const dy = clientY - startY;
+      if (dy > 0) modal.style.transform = `translateY(${dy}px)`;
+    } else {
+      const dx = clientX - startX;
+      const dy = clientY - startY;
+      const maxLeft = window.innerWidth  - modal.offsetWidth;
+      const maxTop  = window.innerHeight - modal.offsetHeight;
+      modal.style.left  = `${Math.max(0, Math.min(maxLeft, startLeft + dx))}px`;
+      modal.style.top   = `${Math.max(0, Math.min(maxTop,  startTop  + dy))}px`;
+      modal.style.right     = "auto";
+      modal.style.transform = "none";
+    }
   }
 
-  function endDrag() { dragging = false; handle.style.cursor = "grab"; }
+  function endDrag(clientY) {
+    if (!dragging) return;
+    dragging = false;
+    handle.style.cursor = "grab";
+    if (isMobile()) {
+      const dy = clientY - startY;
+      if (dy > 80) {
+        closeForecastModal(); // swipe down to close
+      } else {
+        modal.style.transform = "translateY(0)"; // snap back
+      }
+    }
+  }
 
   handle.addEventListener("mousedown", (e) => { if (!e.target.closest(".modal-close")) beginDrag(e.clientX, e.clientY); });
   document.addEventListener("mousemove", (e) => moveDrag(e.clientX, e.clientY));
-  document.addEventListener("mouseup", endDrag);
+  document.addEventListener("mouseup", (e) => endDrag(e.clientY));
 
   handle.addEventListener("touchstart", (e) => {
     if (e.target.closest(".modal-close")) return;
@@ -601,15 +629,18 @@ function initModalDrag() {
     moveDrag(e.touches[0].clientX, e.touches[0].clientY);
     e.preventDefault();
   }, { passive: false });
-  document.addEventListener("touchend", endDrag);
+  document.addEventListener("touchend", (e) => {
+    const t = e.changedTouches[0];
+    endDrag(t.clientY);
+  });
 }
 
 initModalDrag();
 
 function openForecastModal() {
   const modal = el.modal;
-  if (!_modalPositioned) {
-    // Position right-center on first open
+  if (!_modalPositioned && !isMobile()) {
+    // Position right-center on first open (desktop only)
     const mw = 440;
     const left = Math.max(20, window.innerWidth - mw - 24);
     const top  = Math.round((window.innerHeight - 600) / 2);
