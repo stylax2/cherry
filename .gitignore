@@ -1,6 +1,5 @@
-# Large data files (too large for GitHub — copy manually)
-data/
-standalone/data/
+# Root data directory only (backend용, Vercel 미사용)
+/data/
 
 # Claude Code internal settings
 .claude/

@@ -1,7 +1,7 @@
 // ── Configuration ─────────────────────────────────────────────────────────────
 const VWORLD_KEY        = "4B1C42DC-2A7F-302B-AB97-270733346A4F";
 const VWORLD_SEARCH_KEY = "9B3E51CE-4BB6-3606-937B-39AFF211F204";
-const GRID_DATA_URL     = "https://github.com/stylax2/cherry/releases/download/v1.0/cherry_backend_lookup_2026.csv";
+const GRID_DATA_URL     = "./data/cherry_backend_lookup_2026.csv";
 const FESTIVAL_KEYWORD  = "벚꽃축제";
 const FORECAST_YEAR     = 2026;
 
@@ -445,6 +445,11 @@ el.modalCloseBtn.addEventListener("click", closeForecastModal);
 // ── Core prediction ────────────────────────────────────────────────────────────
 async function predictAtLocation(lat, lon, context = {}) {
   setStatus("예측 데이터 로딩 중", "pending");
+  // 모달을 먼저 열어 축제 정보 등을 즉시 표시
+  el.modalKicker.textContent = context.kicker || "Forecast Result";
+  el.modalTitle.textContent  = context.title  || "벚꽃 만개 예측 결과";
+  el.modalIntro.textContent  = context.intro  || "선택한 위치의 예측 결과입니다.";
+  openForecastModal();
   try {
     const rows = await loadGridData();
     const row = findNearestGridRow(lat, lon, rows);
@@ -452,7 +457,14 @@ async function predictAtLocation(lat, lon, context = {}) {
     renderForecastModal(buildForecastFromRow(row, lat, lon), context);
     setStatus("예측 완료", "ok");
   } catch (error) {
+    console.error("[예측 실패]", error);
     setStatus("예측 실패", "error");
+    el.predDate.textContent        = "데이터 없음";
+    el.predDoy.textContent         = "-";
+    el.forecastWindow.textContent  = "-";
+    el.confidence3Day.textContent  = "-";
+    el.confidence5Day.textContent  = "-";
+    el.confidenceLabel.textContent = "-";
   }
 }
 
