@@ -42,7 +42,8 @@ button, input { font: inherit; border: none; outline: none; }
   z-index: 900;
   cursor: pointer;
   overflow: hidden;
-  background: #0a0a0a;
+  /* 이미지 로딩 전 즉시 표시되는 그라디언트 플레이스홀더 */
+  background: linear-gradient(160deg, #1a0a0f 0%, #3d0b1f 40%, #6b1535 70%, #c0175b 100%);
 }
 
 .splash-image {
@@ -693,78 +694,95 @@ button, input { font: inherit; border: none; outline: none; }
   .forecast-modal { width: calc(100vw - 24px); right: 12px; }
 }
 
+/* ── Mobile bottom bar (JS가 .control-bar를 이 컨테이너로 이동) ─────────── */
+.mobile-bar {
+  display: none; /* 데스크톱: 숨김 */
+}
+
 /* ── Mobile (≤ 600px) ─────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
 
-  /* ── 상단바: 브랜드 + 지도모드만 표시 ── */
+  /* 입력 포커스 시 자동 확대 방지 */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* ── 상단바: 브랜드 + 지도모드만 1행 ── */
   .topbar {
     top: 0; left: 0; right: 0;
-    border-radius: 0 0 16px 16px;
+    border-radius: 0 0 14px 14px;
     border-left: none; border-right: none; border-top: none;
-    padding: 10px 14px 8px;
-    gap: 8px; flex-wrap: nowrap;
-    align-items: center;
+    padding: 10px 14px calc(10px + env(safe-area-inset-top, 0px));
+    gap: 8px; flex-wrap: nowrap; align-items: center;
   }
-  .brand { flex: 1; }
+  .brand { flex: 1; min-width: 0; }
   .brand-badge { display: none; }
-  .brand strong { font-size: 13px; }
+  .brand strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .topbar-right { flex-shrink: 0; }
-  .status-line { font-size: 10px; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .status-line { display: none; }
   .map-mode span { display: none; }
   .map-mode { padding: 0 10px; min-width: 34px; }
 
-  /* ── 하단 컨트롤 바 ── */
-  .control-bar {
+  /* ── 컨트롤바: topbar 내에선 숨김 (JS가 mobileBar로 이동) ── */
+  .topbar .control-bar { display: none; }
+
+  /* ── 모바일 하단 바 ── */
+  .mobile-bar {
+    display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
     z-index: 50;
-    /* topbar에서 분리 — order/width 리셋 */
-    order: unset; width: auto; flex-wrap: wrap;
-    overflow-x: unset;
-    /* 2행 레이아웃 */
-    display: flex; flex-direction: row;
-    align-items: center;
+    flex-direction: column;
     gap: 6px;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    background: var(--glass-bg);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-top: 1px solid var(--glass-border);
-    box-shadow: 0 -4px 20px rgba(15,23,42,0.08);
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255,255,255,0.96);
+    border-top: 1px solid rgba(210,54,105,0.15);
+    box-shadow: 0 -4px 24px rgba(15,23,42,0.10);
+  }
+
+  /* 하단 바 안의 control-bar 스타일 재정의 */
+  .mobile-bar .control-bar {
+    display: flex !important;
+    position: static !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   /* 축제 + 지역선택: 1행, 동등 분할 */
-  .ctrl-section:not(.ctrl-section--search) { flex: 1; }
-  .ctrl-section:not(.ctrl-section--search) .ctrl-primary { width: 100%; justify-content: center; }
-
-  /* 구분선 숨김 */
-  .ctrl-divider { display: none; }
+  .mobile-bar .ctrl-section:not(.ctrl-section--search) { flex: 1; }
+  .mobile-bar .ctrl-section:not(.ctrl-section--search) .ctrl-primary {
+    width: 100%; justify-content: center;
+  }
+  .mobile-bar .ctrl-divider { display: none; }
 
   /* 검색: 2행, 전체 너비 */
-  .ctrl-section--search {
-    flex: none; width: 100%;
-    min-width: unset; max-width: none;
-  }
-  .search-form { width: 100%; }
-  .search-input-wrapper { flex: 1; }
+  .mobile-bar .ctrl-section--search { flex: none; width: 100%; min-width: unset; max-width: none; }
+  .mobile-bar .search-form { width: 100%; }
+  .mobile-bar .search-input-wrapper { flex: 1; }
 
-  /* 지도: 하단 바 높이만큼 여백 (약 112px) */
-  .map-stage { bottom: 112px; }
+  /* 지도: 하단 바 높이(약 115px) 만큼 여백 */
+  .map-stage { bottom: 115px; }
 
-  /* ── 모달: 하단 바 위 바텀시트 ── */
+  /* ── 바텀시트 모달 (하단 바 위) ── */
   .forecast-modal {
     width: 100% !important; max-width: 100% !important;
     border-radius: 20px 20px 0 0 !important;
     max-height: 72vh;
     top: auto !important; left: 0 !important; right: 0 !important;
-    bottom: calc(112px + env(safe-area-inset-bottom));
-    transform: translateY(calc(100% + 120px)) !important;
+    bottom: calc(115px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(calc(100% + 130px)) !important;
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
     opacity: 1 !important;
   }
   .forecast-modal.is-visible { transform: translateY(0) !important; }
 
-  /* 모달 핸들: 드래그 표시 pill */
+  /* 모달 핸들 pill */
   .modal-handle { padding: 14px 18px 10px; }
   .modal-handle::before {
     content: ""; display: block;

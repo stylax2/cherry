@@ -566,11 +566,31 @@ function normalizeGeocodeItem(item, query) {
   };
 }
 
+// ── Mobile layout: control-bar를 mobileBar로 이동 (backdrop-filter 스택 회피) ──
+const isMobile = () => window.innerWidth <= 600;
+let _lastMobile = null;
+
+function applyMobileLayout() {
+  const mobile = isMobile();
+  if (mobile === _lastMobile) return;
+  _lastMobile = mobile;
+  const bar     = document.getElementById("controlBar");
+  const mobileB = document.getElementById("mobileBar");
+  const topbar  = document.querySelector(".topbar");
+  if (mobile) {
+    mobileB.appendChild(bar);
+  } else {
+    // 데스크톱: topbar 안 map-mode 앞에 복원
+    topbar.insertBefore(bar, document.querySelector(".topbar-right"));
+  }
+}
+
+applyMobileLayout();
+window.addEventListener("resize", applyMobileLayout);
+
 // ── Draggable modal ────────────────────────────────────────────────────────────
 let _modalPositioned = false;
-const isMobile = () => window.innerWidth <= 600;
 
-// Reset desktop positioning when resizing across breakpoint
 window.addEventListener("resize", () => {
   if (isMobile()) { _modalPositioned = false; }
 });

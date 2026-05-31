@@ -2,8 +2,11 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
     <title>꽃길만 걷게 해줄게 - 2026 벚꽃 만개 예측 지도</title>
+    <!-- 모바일 히어로 이미지 프리로드 -->
+    <link rel="preload" as="image" href="./hero-mobile.jpg" media="(max-width: 600px)" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet" />
@@ -14,7 +17,10 @@
 
     <!-- ── Splash Screen ─────────────────────────────────────────── -->
     <div id="splashScreen" class="splash-screen">
-      <img src="./hero.png" alt="꽃길만 걷게 해줄게" class="splash-image" draggable="false" />
+      <picture>
+        <source srcset="./hero-mobile.jpg" media="(max-width: 600px)" />
+        <img src="./hero.png" alt="꽃길만 걷게 해줄게" class="splash-image" draggable="false" fetchpriority="high" />
+      </picture>
       <div class="splash-overlay">
         <div class="splash-cta">
           <span class="splash-cta-text">화면을 클릭하여 시작하기</span>
@@ -44,8 +50,8 @@
           <strong>전국 벚꽃개화 예측 시스템</strong>
         </div>
 
-        <!-- Three Control Sections -->
-        <div class="control-bar">
+        <!-- Three Control Sections (데스크톱용 — 모바일은 JS가 #mobileBar로 이동) -->
+        <div class="control-bar" id="controlBar">
 
           <!-- 벚꽃축제 -->
           <div class="ctrl-section">
@@ -128,11 +134,13 @@
 
       </header>
 
+      <!-- 모바일 하단 고정 바 (JS가 .control-bar를 이곳으로 이동) -->
+      <div class="mobile-bar" id="mobileBar"></div>
+
       <!-- Map Stage -->
       <main class="map-stage" aria-label="벚꽃축제 및 만개 예측 지도">
         <div id="map"></div>
-
-<div class="map-hint">
+        <div class="map-hint">
           <span class="hint-icon">💡</span>
           <div class="hint-text">
             <strong>지도 클릭</strong>
@@ -170,7 +178,7 @@
           <p id="modalIntro">선택한 위치의 예측 결과입니다.</p>
         </div>
 
-        <!-- 축제 정보 카드 (벚꽃축제 마커 클릭 시만 표시) -->
+        <!-- 축제 정보 카드 -->
         <div class="festival-info-card" id="festivalInfoCard" style="display:none">
           <div class="fic-header">
             <span class="fic-badge">🌸 축제 정보</span>
