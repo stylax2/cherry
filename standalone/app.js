@@ -221,6 +221,16 @@ function enterApp() {
   }, { once: true });
 }
 
+function returnToSplash() {
+  closeForecastModal();
+  el.splash.style.display = "";
+  el.splash.classList.remove("is-exiting");
+  el.appShell.classList.add("app-hidden");
+}
+
+document.querySelector(".brand").addEventListener("click", returnToSplash);
+document.querySelector(".brand").style.cursor = "pointer";
+
 // ── Map mode toggle ────────────────────────────────────────────────────────────
 document.querySelectorAll(".map-mode").forEach((btn) => {
   btn.addEventListener("click", () => {
