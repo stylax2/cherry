@@ -1,0 +1,27 @@
+# Large data files (too large for GitHub — copy manually)
+data/
+standalone/data/
+
+# Claude Code internal settings
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+
+# Server logs / temp
+standalone/server_out.txt
+standalone/server_err.txt
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

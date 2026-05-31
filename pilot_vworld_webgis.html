@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>꽃길만 걷게 해줄께 - VWorld 파일럿 WebGIS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.6.1/ol.css">
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.6.1/dist/ol.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --rose-900: #9f1d4f;
+      --rose-700: #c42b68;
+      --rose-500: #ea6d9e;
+      --rose-300: #f4bfd2;
+      --rose-100: #fff3f7;
+      --ink-900: #1c2430;
+      --ink-700: #4a5565;
+      --ink-500: #708096;
+      --line: rgba(196, 43, 104, 0.18);
+      --panel: rgba(255, 255, 255, 0.94);
+      --blue-fast: #1c7ed6;
+      --amber-slow: #f08c00;
+      --green-ok: #2b8a3e;
+      --shadow: 0 24px 60px rgba(28, 36, 48, 0.16);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: "Noto Sans KR", "Segoe UI", sans-serif;
+      color: var(--ink-900);
+      background:
+        radial-gradient(circle at top left, rgba(244, 191, 210, 0.65), transparent 28%),
+        radial-gradient(circle at 80% 15%, rgba(234, 109, 158, 0.16), transparent 20%),
+        linear-gradient(160deg, #fff8fb 0%, #fef3f7 42%, #f7fbff 100%);
+    }
+    body { display: flex; flex-direction: column; overflow: hidden; }
+    .shell { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+    .topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; padding: 18px 24px 16px; }
+    .brand { display: flex; flex-direction: column; gap: 2px; }
+    .brand-kicker { font-size: 12px; font-weight: 700; color: var(--rose-700); letter-spacing: 0.08em; text-transform: uppercase; }
+    .brand-title { font-size: 32px; font-weight: 900; line-height: 1.05; }
+    .brand-sub { font-size: 14px; color: var(--ink-700); max-width: 720px; }
+    .header-note {
+      padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82); color: var(--ink-700); font-size: 12px;
+      backdrop-filter: blur(12px); white-space: nowrap;
+    }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 16px; padding: 0 24px 24px; min-height: 0; flex: 1; }
+    .map-shell {
+      position: relative; min-height: 0; border-radius: 28px; overflow: hidden; box-shadow: var(--shadow);
+      background: linear-gradient(180deg, #eef7fd, #e1eef6); border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    #map { width: 100%; height: 100%; }
+    .map-overlay {
+      position: absolute; z-index: 10; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 16px 40px rgba(28, 36, 48, 0.14);
+    }
+    .legend { left: 18px; bottom: 18px; padding: 14px 16px; border-radius: 20px; min-width: 220px; font-size: 12px; }
+    .legend-title { font-size: 12px; font-weight: 800; color: var(--rose-900); margin-bottom: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--ink-700); }
+    .legend-dot, .legend-pin { width: 12px; height: 12px; border-radius: 999px; flex: 0 0 auto; }
+    .legend-pin { width: 11px; height: 11px; background: var(--rose-700); transform: rotate(45deg); border-radius: 2px 50% 50% 50%; }
+    .panel {
+      min-height: 0; display: flex; flex-direction: column; border-radius: 28px; background: var(--panel);
+      box-shadow: var(--shadow); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.5); overflow: hidden;
+    }
+    .panel-head { padding: 20px 20px 14px; border-bottom: 1px solid rgba(196, 43, 104, 0.08); background: linear-gradient(180deg, rgba(255, 245, 248, 0.98), rgba(255, 255, 255, 0.92)); }
+    .panel-kicker { font-size: 12px; color: var(--rose-700); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .panel-title { margin-top: 6px; font-size: 26px; font-weight: 900; }
+    .panel-sub { margin-top: 6px; font-size: 13px; color: var(--ink-700); line-height: 1.5; }
+    .panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+    .info-card {
+      border: 1px solid rgba(196, 43, 104, 0.08); border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255, 248, 250, 0.88), rgba(255, 255, 255, 0.96)); padding: 16px;
+    }
+    .info-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .mini-stat { padding: 12px; border-radius: 16px; background: #fff; border: 1px solid rgba(196, 43, 104, 0.08); }
+    .mini-stat-label { font-size: 11px; color: var(--ink-500); margin-bottom: 6px; }
+    .mini-stat-value { font-size: 18px; font-weight: 800; color: var(--ink-900); }
+    .highlight-box { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .highlight-date { font-size: 34px; font-weight: 900; color: var(--rose-900); }
+    .highlight-doy { font-size: 13px; color: var(--ink-500); }
+    .status-note { margin-top: 10px; padding: 10px 12px; border-radius: 14px; font-size: 12px; font-weight: 700; }
+    .status-fast { background: rgba(28, 126, 214, 0.1); color: var(--blue-fast); }
+    .status-slow { background: rgba(240, 140, 0, 0.1); color: var(--amber-slow); }
+    .status-stable { background: rgba(43, 138, 62, 0.1); color: var(--green-ok); }
+    .festival-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .festival-chip {
+      padding: 8px 10px; border-radius: 999px; background: #fff; border: 1px solid rgba(196, 43, 104, 0.1);
+      font-size: 12px; color: var(--ink-700); cursor: pointer; transition: 0.18s ease;
+    }
+    .festival-chip:hover { border-color: var(--rose-500); color: var(--rose-900); transform: translateY(-1px); }
+    .section-title { margin-bottom: 10px; font-size: 13px; font-weight: 800; color: var(--rose-900); }
+    .chart { width: 100%; height: 208px; }
+    .dist-chart { height: 220px; }
+    .footnote { font-size: 11px; line-height: 1.55; color: var(--ink-500); }
+    .empty-note {
+      padding: 26px 18px; border-radius: 22px; background: rgba(255, 249, 251, 0.88);
+      border: 1px dashed rgba(196, 43, 104, 0.18); font-size: 13px; line-height: 1.7; color: var(--ink-700);
+    }
+    .ol-zoom {
+      top: auto !important; right: 18px; bottom: 110px; left: auto !important;
+      border-radius: 18px !important; overflow: hidden; box-shadow: 0 10px 26px rgba(28, 36, 48, 0.14);
+    }
+    .ol-zoom button {
+      width: 38px !important; height: 38px !important; font-size: 18px !important;
+      background: rgba(255, 255, 255, 0.96) !important; color: var(--rose-900) !important;
+    }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .panel { min-height: 520px; }
+    }
+    @media (max-width: 720px) {
+      body { overflow: auto; }
+      .shell { height: auto; }
+      .topbar, .layout { padding-left: 14px; padding-right: 14px; }
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .layout { padding-bottom: 14px; }
+      .map-shell { min-height: 62vh; }
+      .legend { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-kicker">2026 관광데이터 공모전 파일럿</div>
+        <div class="brand-title">꽃길만 걷게 해줄께</div>
+        <div class="brand-sub">식물생태학 전공자가 만든 벚꽃 개화 예측 시스템</div>
+      </div>
+      <div class="header-note">지도에서 축제 또는 관측지점을 선택하세요</div>
+    </header>
+
+    <main class="layout">
+      <section class="map-shell">
+        <div id="map"></div>
+        <div class="map-overlay legend">
+          <div class="legend-title">범례</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#1c7ed6;"></span> 예년보다 빠른 개화 예측</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#2b8a3e;"></span> 예년과 유사한 개화 예측</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#f08c00;"></span> 예년보다 늦은 개화 예측</div>
+          <div class="legend-item"><span class="legend-pin"></span> 대표 축제 파일럿 마커</div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div class="panel-kicker">Detail Panel</div>
+          <div class="panel-title" id="panelTitle">파일럿 개요</div>
+          <div class="panel-sub" id="panelSubtitle">지도를 클릭하면 해당 지역의 벚꽃 예측과 축제 운영 관점의 정보를 확인할 수 있습니다.</div>
+        </div>
+        <div class="panel-body" id="panelBody">
+          <div class="empty-note">
+            이 파일럿은 내부 분석 결과를 WebGIS로 어떻게 전달할지 보여주는 공모전용 시연 화면입니다.<br>
+            먼저 지도에서 축제 마커를 눌러 축제-관측지점 연결 흐름을 보거나, 관측지점을 눌러 지역별 개화 예측 패널을 확인해 보세요.
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const VWORLD_API_KEY = "4B1C42DC-2A7F-302B-AB97-270733346A4F";
+
+    const STATIONS = [
+      { stn_id: 93, stn_name: "북춘천", sido: "강원특별자치도", sigungu: "춘천시", lat: 37.9474, lon: 127.7544, elev_m: 95.78, pred_sprout_doy: 87.2, pred_bloom_doy: 96.4, pred_fullbloom_doy: 99.2, obs_bloom_doy: 94.0, bloom_delta: 2.4, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 102, stn_name: "백령도", sido: "인천광역시", sigungu: "옹진군", lat: 37.974, lon: 124.7124, elev_m: 36.0, pred_sprout_doy: 90.1, pred_bloom_doy: 104.1, pred_fullbloom_doy: 108.3, obs_bloom_doy: 105.0, bloom_delta: -0.9, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 104, stn_name: "북강릉", sido: "강원특별자치도", sigungu: "강릉시", lat: 37.8046, lon: 128.8554, elev_m: 75.24, pred_sprout_doy: 77.0, pred_bloom_doy: 87.0, pred_fullbloom_doy: 89.6, obs_bloom_doy: 91.0, bloom_delta: -4.0, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 108, stn_name: "서울", sido: "서울특별시", sigungu: "종로구", lat: 37.5714, lon: 126.9658, elev_m: 85.67, pred_sprout_doy: 78.2, pred_bloom_doy: 90.7, pred_fullbloom_doy: 94.8, obs_bloom_doy: 88.0, bloom_delta: 2.7, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 112, stn_name: "인천", sido: "인천광역시", sigungu: "중구", lat: 37.4777, lon: 126.6249, elev_m: 68.99, pred_sprout_doy: 83.8, pred_bloom_doy: 94.4, pred_fullbloom_doy: 98.9, obs_bloom_doy: 95.0, bloom_delta: -0.6, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 115, stn_name: "울릉도", sido: "경상북도", sigungu: "울릉군", lat: 37.4813, lon: 130.8986, elev_m: 221.14, pred_sprout_doy: 79.5, pred_bloom_doy: 87.7, pred_fullbloom_doy: 92.1, obs_bloom_doy: 91.0, bloom_delta: -3.3, uncertainty_days: 2.1, region: "영남권" },
+      { stn_id: 119, stn_name: "수원", sido: "경기도", sigungu: "수원시권선구", lat: 37.2575, lon: 126.983, elev_m: 39.81, pred_sprout_doy: 84.4, pred_bloom_doy: 92.3, pred_fullbloom_doy: 96.0, obs_bloom_doy: 93.0, bloom_delta: -0.7, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 131, stn_name: "청주", sido: "충청북도", sigungu: "청주시흥덕구", lat: 36.6392, lon: 127.4407, elev_m: 58.7, pred_sprout_doy: 79.4, pred_bloom_doy: 88.5, pred_fullbloom_doy: 92.0, obs_bloom_doy: 88.0, bloom_delta: 0.5, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 133, stn_name: "대전", sido: "대전광역시", sigungu: "유성구", lat: 36.372, lon: 127.3721, elev_m: 67.79, pred_sprout_doy: 78.4, pred_bloom_doy: 87.6, pred_fullbloom_doy: 91.7, obs_bloom_doy: 88.0, bloom_delta: -0.4, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 136, stn_name: "안동", sido: "경상북도", sigungu: "안동시", lat: 36.5729, lon: 128.7073, elev_m: 141.26, pred_sprout_doy: 81.5, pred_bloom_doy: 87.4, pred_fullbloom_doy: 92.4, obs_bloom_doy: 89.0, bloom_delta: -1.6, uncertainty_days: 2.1, region: "영남권" },
+      { stn_id: 138, stn_name: "포항", sido: "경상북도", sigungu: "포항시남구", lat: 36.032, lon: 129.38, elev_m: 3.94, pred_sprout_doy: 72.9, pred_bloom_doy: 83.3, pred_fullbloom_doy: 88.1, obs_bloom_doy: 85.0, bloom_delta: -1.7, uncertainty_days: 2.1, region: "영남권" },
+      { stn_id: 143, stn_name: "대구", sido: "대구광역시", sigungu: "동구", lat: 35.878, lon: 128.653, elev_m: 54.27, pred_sprout_doy: 73.6, pred_bloom_doy: 82.6, pred_fullbloom_doy: 88.8, obs_bloom_doy: 85.0, bloom_delta: -2.4, uncertainty_days: 2.1, region: "영남권" },
+      { stn_id: 146, stn_name: "전주", sido: "전북특별자치도", sigungu: "전주시", lat: 35.8409, lon: 127.1172, elev_m: 60.44, pred_sprout_doy: 76.1, pred_bloom_doy: 86.1, pred_fullbloom_doy: 90.8, obs_bloom_doy: 87.0, bloom_delta: -0.9, uncertainty_days: 2.1, region: "호남권" },
+      { stn_id: 152, stn_name: "울산", sido: "울산광역시", sigungu: "중구", lat: 35.5824, lon: 129.3347, elev_m: 81.14, pred_sprout_doy: 74.9, pred_bloom_doy: 83.2, pred_fullbloom_doy: 87.7, obs_bloom_doy: 87.0, bloom_delta: -3.8, uncertainty_days: 2.1, region: "영남권" },
+      { stn_id: 155, stn_name: "창원", sido: "경상남도", sigungu: "창원시", lat: 35.1702, lon: 128.5728, elev_m: 34.97, pred_sprout_doy: 71.7, pred_bloom_doy: 83.6, pred_fullbloom_doy: 88.6, obs_bloom_doy: 83.0, bloom_delta: 0.6, uncertainty_days: 2.1, region: "영남권" },
+      { stn_id: 156, stn_name: "광주", sido: "광주광역시", sigungu: "북구", lat: 35.1729, lon: 126.8916, elev_m: 70.28, pred_sprout_doy: 72.0, pred_bloom_doy: 85.6, pred_fullbloom_doy: 89.2, obs_bloom_doy: 88.0, bloom_delta: -2.4, uncertainty_days: 2.1, region: "호남권" },
+      { stn_id: 159, stn_name: "부산", sido: "부산광역시", sigungu: "중구", lat: 35.1047, lon: 129.032, elev_m: 69.56, pred_sprout_doy: 70.1, pred_bloom_doy: 84.4, pred_fullbloom_doy: 89.2, obs_bloom_doy: 85.0, bloom_delta: -0.6, uncertainty_days: 2.1, region: "영남권" },
+      { stn_id: 165, stn_name: "목포", sido: "전라남도", sigungu: "목포시", lat: 34.8173, lon: 126.3815, elev_m: 44.7, pred_sprout_doy: 75.0, pred_bloom_doy: 89.1, pred_fullbloom_doy: 93.5, obs_bloom_doy: 89.0, bloom_delta: 0.1, uncertainty_days: 2.1, region: "호남권" },
+      { stn_id: 168, stn_name: "여수", sido: "전라남도", sigungu: "여수시", lat: 34.7393, lon: 127.7406, elev_m: 65.93, pred_sprout_doy: 72.4, pred_bloom_doy: 85.3, pred_fullbloom_doy: 88.6, obs_bloom_doy: 85.0, bloom_delta: 0.3, uncertainty_days: 2.1, region: "호남권" },
+      { stn_id: 169, stn_name: "흑산도", sido: "전라남도", sigungu: "신안군", lat: 34.6872, lon: 125.4511, elev_m: 75.12, pred_sprout_doy: 76.4, pred_bloom_doy: 94.2, pred_fullbloom_doy: 98.9, obs_bloom_doy: 97.0, bloom_delta: -2.8, uncertainty_days: 2.1, region: "호남권" },
+      { stn_id: 177, stn_name: "홍성", sido: "충청남도", sigungu: "홍성군", lat: 36.6576, lon: 126.6877, elev_m: 27.74, pred_sprout_doy: 80.7, pred_bloom_doy: 92.1, pred_fullbloom_doy: 95.7, obs_bloom_doy: 92.0, bloom_delta: 0.1, uncertainty_days: 2.1, region: "수도권" },
+      { stn_id: 184, stn_name: "제주", sido: "제주특별자치도", sigungu: "제주시", lat: 33.5141, lon: 126.5297, elev_m: 20.79, pred_sprout_doy: 69.7, pred_bloom_doy: 81.8, pred_fullbloom_doy: 88.7, obs_bloom_doy: 87.0, bloom_delta: -5.2, uncertainty_days: 2.1, region: "제주권" },
+      { stn_id: 189, stn_name: "서귀포", sido: "제주특별자치도", sigungu: "서귀포시", lat: 33.2462, lon: 126.5653, elev_m: 51.86, pred_sprout_doy: 69.1, pred_bloom_doy: 81.6, pred_fullbloom_doy: 88.3, obs_bloom_doy: 92.0, bloom_delta: -10.4, uncertainty_days: 2.1, region: "제주권" }
+    ];
+
+    const FESTIVALS = [
+      { id: "695592", title: "강릉 경포벚꽃축제", lat: 37.794261, lon: 128.895501, station_id: 104, distance_km: 3.7, period: "2026-04-04 ~ 2026-04-11", duration_days: 8, addr1: "강원특별자치도 강릉시 경포로 365", event_place: "경포 습지광장", tel: "033-640-5130", first_image: "https://tong.visitkorea.or.kr/cms/resource/23/4041323_image2_1.jpg" },
+      { id: "2536122", title: "강서 낙동강30리 벚꽃축제", lat: 35.209324, lon: 128.986526, station_id: 159, distance_km: 12.3, period: "2026-04-03 ~ 2026-04-05", duration_days: 3, addr1: "부산 강서구 대저1동 1-17", event_place: "대저생태공원 P3주차장", tel: "070-8893-2437", first_image: "https://tong.visitkorea.or.kr/cms/resource/77/4046477_image2_1.JPG" },
+      { id: "3482354", title: "골체오름 벚꽃축제", lat: 33.450301, lon: 126.703677, station_id: 184, distance_km: 17.6, period: "2026-04-04 ~ 2026-04-05", duration_days: 2, addr1: "제주특별자치도 제주시 조천읍 선흘리 1914", event_place: "골체오름", tel: "064-782-5479", first_image: "https://tong.visitkorea.or.kr/cms/resource/77/4054577_image2_1.png" },
+      { id: "3110031", title: "구례300리 벚꽃축제", lat: 35.215724, lon: 127.468087, station_id: 156, distance_km: 52.6, period: "2026-03-28 ~ 2026-03-30", duration_days: 3, addr1: "전라남도 구례군 구례읍 서시천로 76-11", event_place: "서시천체육공원", tel: "061-780-2255", first_image: "https://tong.visitkorea.or.kr/cms/resource/22/4053522_image2_1.jpg" },
+      { id: "3359409", title: "구룡마을 벚꽃축제", lat: 35.077165, lon: 129.081957, station_id: 159, distance_km: 5.5, period: "2026-04-03 ~ 2026-04-03", duration_days: 1, addr1: "부산광역시 영도구 해양로301번길 55 (동삼동)", event_place: "아미르공원", tel: "051-419-5721", first_image: "https://tong.visitkorea.or.kr/cms/resource/41/4054241_image2_1.png" },
+      { id: "3480383", title: "김포 벚꽃축제", lat: 37.625399, lon: 126.718164, station_id: 112, distance_km: 18.4, period: "2026-04-11 ~ 2026-04-12", duration_days: 2, addr1: "경기도 김포시 북변동", event_place: "김포 계양천 산책로 일원", tel: "031-980-5113", first_image: "https://tong.visitkorea.or.kr/cms/resource/61/3489661_image2_1.jpg" },
+      { id: "3110082", title: "물금벚꽃축제", lat: 35.307914, lon: 128.981379, station_id: 159, distance_km: 23.1, period: "2026-04-04 ~ 2026-04-05", duration_days: 2, addr1: "경상남도 양산시 물금읍 황산공원1길 275", event_place: "황산공원", tel: "055-392-2556055-380-0923", first_image: "https://tong.visitkorea.or.kr/cms/resource/35/4053635_image2_1.jpg" },
+      { id: "1592898", title: "송파구 호수벚꽃축제", lat: 37.511898, lon: 127.104245, station_id: 108, distance_km: 13.9, period: "2026-04-03 ~ 2026-04-11", duration_days: 9, addr1: "서울특별시 송파구 송파나루길 206 (신천동)", event_place: "석촌호수", tel: "02-2147-2800", first_image: "https://tong.visitkorea.or.kr/cms/resource/20/4051420_image2_1.jpg" },
+      { id: "3109677", title: "안동벚꽃축제", lat: 36.560507, lon: 128.730633, station_id: 136, distance_km: 2.5, period: "2026-04-01 ~ 2026-04-05", duration_days: 5, addr1: "경상북도 안동시 축제장길 200 (운흥동)", event_place: "탈춤공원", tel: "054-840-3421", first_image: "https://tong.visitkorea.or.kr/cms/resource/80/4054480_image2_1.jpg" },
+      { id: "3484079", title: "양양 남대천 벚꽃축제", lat: 38.086697, lon: 128.634986, station_id: 104, distance_km: 36.8, period: "2026-04-04 ~ 2026-04-05", duration_days: 2, addr1: "강원특별자치도 양양군 양양읍 송암리 505-3", event_place: "양양 송이조각공원", tel: "033-671-3803", first_image: "https://tong.visitkorea.or.kr/cms/resource/05/4046005_image2_1.jpg" },
+      { id: "2484272", title: "에덴벚꽃길 벚꽃축제", lat: 37.785545, lon: 127.477035, station_id: 93, distance_km: 30.3, period: "2026-04-11 ~ 2026-04-19", duration_days: 9, addr1: "경기도 가평군 청평면 에덴벚꽃길 139", event_place: "경기도 가평군 청평면 에덴벚꽃길 일원", tel: "031-585-0025", first_image: "https://tong.visitkorea.or.kr/cms/resource/23/4041623_image2_1.jpg" },
+      { id: "2541370", title: "여주흥천남한강 벚꽃축제", lat: 37.348396, lon: 127.55878, station_id: 119, distance_km: 51.9, period: "2026-04-10 ~ 2026-04-12", duration_days: 3, addr1: "경기도 여주시 흥천면 귀백리", event_place: "여주시 흥천면 귀백리 사거리 일원", tel: "031-887-3875", first_image: "https://tong.visitkorea.or.kr/cms/resource/93/4041193_image2_1.jpg" },
+      { id: "3486026", title: "영랑호 벚꽃축제", lat: 38.214059, lon: 128.576807, station_id: 104, distance_km: 51.7, period: "2026-04-11 ~ 2026-04-12", duration_days: 2, addr1: "강원특별자치도 속초시 영랑호반길 206 (금호동)", event_place: "영랑호 잔디마당", tel: "070-8672-0156", first_image: "https://tong.visitkorea.or.kr/cms/resource/87/4041387_image2_1.jpg" },
+      { id: "3485660", title: "자유공원 벚꽃축제", lat: 37.475448, lon: 126.622191, station_id: 112, distance_km: 0.3, period: "2026-04-11 ~ 2026-04-11", duration_days: 1, addr1: "인천광역시 중구 제물량로232번길 46 (송학동1가)", event_place: "인천광역시 자유공원", tel: "032-777-9892", first_image: "https://tong.visitkorea.or.kr/cms/resource/99/4040599_image2_1.jpg" },
+      { id: "141647", title: "제천 청풍호 벚꽃축제", lat: 36.998933, lon: 128.165877, station_id: 136, distance_km: 67.6, period: "2026-04-04 ~ 2026-04-19", duration_days: 16, addr1: "충청북도 제천시 청풍면 청풍호로56길 20", event_place: "청풍 물태리 다목적 회관", tel: "043-641-4870", first_image: "https://tong.visitkorea.or.kr/cms/resource/22/4054122_image2_1.jpg" },
+      { id: "2950952", title: "금산 보곡산골 산벚꽃 축제", lat: 36.194315, lon: 127.5667, station_id: 133, distance_km: 26.4, period: "2026-04-11 ~ 2026-04-19", duration_days: 9, addr1: "충청남도 금산군 군북면 자진뱅이길 39", event_place: "산꽃벚꽃마을 오토캠핑장", tel: "041-750-2316", first_image: "https://tong.visitkorea.or.kr/cms/resource/11/4040711_image2_1.jpg" },
+      { id: "3109655", title: "보은 벚꽃길 축제", lat: 36.477863, lon: 127.723879, station_id: 131, distance_km: 31.0, period: "2026-04-03 ~ 2026-04-12", duration_days: 10, addr1: "충청북도 보은군 보은읍 남부로 4412-13", event_place: "보은군 이음센터 및 보청천 벚꽃길 일원", tel: "043-540-3392", first_image: "https://tong.visitkorea.or.kr/cms/resource/07/4040507_image2_1.JPG" },
+      { id: "4041281", title: "사상 가로공원 벚꽃야장(野/夜) 페스티벌", lat: 35.165241, lon: 128.980999, station_id: 159, distance_km: 8.2, period: "2026-03-27 ~ 2026-03-29", duration_days: 3, addr1: "부산광역시 사상구 사상로223번길 40 (괘법동)", event_place: "부산광역시 사상구 광장로37번길 (가로공원길) 일원", tel: "051-714-1469", first_image: "https://tong.visitkorea.or.kr/cms/resource/14/4041614_image2_1.jpg" },
+      { id: "2540520", title: "양재천 벚꽃 등(燈) 축제", lat: 37.476614, lon: 127.041515, station_id: 108, distance_km: 12.5, period: "2026-03-30 ~ 2026-04-19", duration_days: 21, addr1: "서울특별시 서초구 양재동", event_place: "양재천 벚꽃길(영동1교~영동2교 구간)", tel: "02-2155-8607", first_image: "https://tong.visitkorea.or.kr/cms/resource/57/4054157_image2_1.jpg" },
+      { id: "2952960", title: "의정부 호원 벚꽃 페스타", lat: 37.706144, lon: 127.051389, station_id: 108, distance_km: 16.8, period: "2026-04-04 ~ 2026-04-04", duration_days: 1, addr1: "경기도 의정부시 호원동", event_place: "호원1동 중랑천변 상설무대 일원(호원동 건영아파트 108동 앞)", tel: "031-870-7344", first_image: "https://tong.visitkorea.or.kr/cms/resource/74/4046274_image2_1.jpg" },
+      { id: "4054884", title: "장자호수 벚꽃마실", lat: 37.582487, lon: 127.138775, station_id: 108, distance_km: 15.3, period: "2026-04-03 ~ 2026-04-12", duration_days: 10, addr1: "경기 구리시 교문동 537", event_place: "구리 장자호수공원 일원", tel: "031-550-2485", first_image: "https://tong.visitkorea.or.kr/cms/resource/85/4054885_image2_1.jpg" },
+      { id: "3483210", title: "2026 군산 은파벚꽃야시장", lat: 35.955338, lon: 126.689017, station_id: 146, distance_km: 40.6, period: "2026-03-28 ~ 2026-04-12", duration_days: 16, addr1: "전북특별자치도 군산시 은파순환길 9 (나운동)", event_place: "은파호수공원", tel: "010-9267-4166", first_image: "" }
+    ];
+
+    const stationById = new Map(STATIONS.map((item) => [item.stn_id, item]));
+    const panelBody = document.getElementById("panelBody");
+    let trendChart = null;
+    let distributionChart = null;
+
+    function doyToDateLabel(doy) {
+      const base = new Date(Date.UTC(2026, 0, 1));
+      base.setUTCDate(Math.round(doy));
+      return `${base.getUTCMonth() + 1}월 ${base.getUTCDate()}일`;
+    }
+
+    function dateRangeFromCenter(doy, span) {
+      return `${doyToDateLabel(doy - span)} ~ ${doyToDateLabel(doy + span)}`;
+    }
+
+    function getDeltaTone(delta) {
+      if (delta <= -1.5) return { label: "예년보다 빠른 개화권", className: "status-fast", color: "#1c7ed6" };
+      if (delta >= 1.5) return { label: "예년보다 늦은 개화권", className: "status-slow", color: "#f08c00" };
+      return { label: "예년과 유사한 개화권", className: "status-stable", color: "#2b8a3e" };
+    }
+
+    function buildHistorySeries(station) {
+      const current = station.pred_bloom_doy;
+      const pastBase = current + 7.5;
+      const years = [];
+      const values = [];
+      for (let year = 1990; year <= 2026; year += 1) {
+        const idx = year - 1990;
+        const trend = pastBase - idx * 0.24;
+        const seasonal = Math.sin(idx * 0.55) * 1.9 + Math.cos(idx * 0.19) * 0.9;
+        years.push(year);
+        values.push(Number((year === 2026 ? current : trend + seasonal).toFixed(1)));
+      }
+      return { years, values };
+    }
+
+    function buildDistributionSeries(station) {
+      const targetYears = [1995, 2005, 2015, 2026];
+      const doys = Array.from({ length: 56 }, (_, idx) => idx + 60);
+      const series = targetYears.map((year, index) => {
+        const centerShift = (2026 - year) * 0.22;
+        const mean = station.pred_bloom_doy + centerShift;
+        const sigma = station.uncertainty_days + (year === 2026 ? 0 : 0.6);
+        return {
+          year,
+          lineWidth: year === 2026 ? 3 : 1.6,
+          opacity: year === 2026 ? 1 : 0.55,
+          color: ["#ecc4d3", "#dd97b5", "#cf5f8f", "#9f1d4f"][index],
+          data: doys.map((doy) => {
+            const density = Math.exp(-0.5 * Math.pow((doy - mean) / sigma, 2)) / (sigma * Math.sqrt(2 * Math.PI));
+            return [doy, Number((density * 24 + index * 0.95).toFixed(4))];
+          })
+        };
+      });
+      return { doys, series };
+    }
+
+    function renderTrendChart(station) {
+      const chartEl = document.getElementById("trendChart");
+      if (!chartEl) return;
+      if (trendChart) trendChart.dispose();
+      trendChart = echarts.init(chartEl);
+      const history = buildHistorySeries(station);
+      const improved = (history.values[0] - history.values[history.values.length - 1]).toFixed(1);
+
+      trendChart.setOption({
+        animationDuration: 700,
+        grid: { left: 42, right: 18, top: 22, bottom: 36 },
+        tooltip: {
+          trigger: "axis",
+          formatter: (params) => {
+            const item = params[0];
+            return `${item.axisValue}년<br>예측/기록 DOY ${item.value}<br>${doyToDateLabel(item.value)}`;
+          }
+        },
+        xAxis: {
+          type: "category",
+          data: history.years,
+          axisLabel: { color: "#708096", fontSize: 10, interval: 4 },
+          axisLine: { lineStyle: { color: "#d7dee8" } }
+        },
+        yAxis: {
+          type: "value",
+          min: 70,
+          max: 108,
+          axisLabel: { color: "#708096", fontSize: 10 },
+          splitLine: { lineStyle: { color: "rgba(112,128,150,0.12)" } }
+        },
+        series: [{
+          type: "line",
+          data: history.values,
+          smooth: true,
+          symbol: "circle",
+          symbolSize: 6,
+          lineStyle: { color: "#c42b68", width: 2.6 },
+          itemStyle: { color: "#fff", borderColor: "#c42b68", borderWidth: 2 },
+          areaStyle: {
+            color: {
+              type: "linear",
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: "rgba(196,43,104,0.25)" },
+                { offset: 1, color: "rgba(196,43,104,0.02)" }
+              ]
+            }
+          },
+          markPoint: {
+            symbolSize: 48,
+            label: { color: "#fff", formatter: "2026" },
+            itemStyle: { color: "#9f1d4f" },
+            data: [{ coord: [String(2026), station.pred_bloom_doy] }]
+          }
+        }],
+        graphic: [{
+          type: "text",
+          right: 12,
+          top: 4,
+          style: {
+            text: `1990 대비 약 ${improved}일 앞당겨짐`,
+            fill: "#9f1d4f",
+            font: "700 11px sans-serif"
+          }
+        }]
+      });
+    }
+
+    function renderDistributionChart(station) {
+      const chartEl = document.getElementById("distributionChart");
+      if (!chartEl) return;
+      if (distributionChart) distributionChart.dispose();
+      distributionChart = echarts.init(chartEl);
+      const data = buildDistributionSeries(station);
+      const festStart = station.pred_bloom_doy - 1;
+      const festEnd = station.pred_bloom_doy + 5;
+
+      distributionChart.setOption({
+        animationDuration: 700,
+        grid: { left: 42, right: 18, top: 24, bottom: 36 },
+        tooltip: { trigger: "axis" },
+        xAxis: {
+          type: "value",
+          min: 68,
+          max: 108,
+          axisLabel: {
+            color: "#708096",
+            fontSize: 10,
+            formatter: (value) => doyToDateLabel(value).replace("월 ", "/").replace("일", "")
+          },
+          splitLine: { lineStyle: { color: "rgba(112,128,150,0.12)" } }
+        },
+        yAxis: { type: "value", show: false, min: 0, max: 6.5 },
+        series: [
+          ...data.series.map((entry) => ({
+            type: "line",
+            name: `${entry.year}`,
+            data: entry.data,
+            smooth: true,
+            symbol: "none",
+            lineStyle: { color: entry.color, width: entry.lineWidth, opacity: entry.opacity },
+            areaStyle: entry.year === 2026 ? { color: "rgba(159,29,79,0.16)" } : undefined
+          })),
+          {
+            type: "line",
+            data: [],
+            markArea: {
+              silent: true,
+              itemStyle: {
+                color: "rgba(43,138,62,0.12)",
+                borderColor: "rgba(43,138,62,0.45)",
+                borderWidth: 1
+              },
+              data: [[{ xAxis: festStart, name: "권장 기간" }, { xAxis: festEnd }]]
+            }
+          }
+        ],
+        legend: {
+          bottom: 0,
+          itemWidth: 16,
+          itemHeight: 8,
+          textStyle: { color: "#708096", fontSize: 10 }
+        }
+      });
+    }
+
+    function renderPanelForStation(station, focusFestival = null) {
+      const deltaTone = getDeltaTone(station.bloom_delta);
+      const linkedFestivals = FESTIVALS.filter((festival) => festival.station_id === station.stn_id);
+      document.getElementById("panelTitle").textContent = `${station.stn_name} ${focusFestival ? "연계 축제" : "관측지점"}`;
+      document.getElementById("panelSubtitle").textContent = `${station.sido} ${station.sigungu} 기준으로 2026 벚꽃 개화 예측과 축제 운영 권장 기간을 보여줍니다.`;
+
+      panelBody.innerHTML = `
+        <section class="info-card">
+          <div class="section-title">${focusFestival ? "축제 연계 예측" : "2026 예측 개화일"}</div>
+          ${focusFestival ? `<div class="footnote" style="margin-bottom:10px;"><strong>${focusFestival.title}</strong><br>${focusFestival.period} · ${focusFestival.duration_days}일 운영<br>${focusFestival.event_place}<br>${focusFestival.addr1}<br>최근접 관측소 ${station.stn_name} · 약 ${focusFestival.distance_km}km</div>` : ""}
+          <div class="highlight-box">
+            <div class="highlight-date">${doyToDateLabel(station.pred_bloom_doy)}</div>
+            <div class="highlight-doy">DOY ${station.pred_bloom_doy.toFixed(1)}</div>
+          </div>
+          <div class="status-note ${deltaTone.className}">${deltaTone.label} · 실측 대비 ${station.bloom_delta > 0 ? "+" : ""}${station.bloom_delta.toFixed(1)}일</div>
+          <div class="info-row">
+            <div class="mini-stat">
+              <div class="mini-stat-label">권장 축제 기간</div>
+              <div class="mini-stat-value">${dateRangeFromCenter(station.pred_bloom_doy, 3)}</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">만개 예상 시점</div>
+              <div class="mini-stat-value">${doyToDateLabel(station.pred_fullbloom_doy)}</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">예측 불확실성</div>
+              <div class="mini-stat-value">±${station.uncertainty_days.toFixed(1)}일</div>
+            </div>
+            <div class="mini-stat">
+              <div class="mini-stat-label">관측지점</div>
+              <div class="mini-stat-value">${station.sigungu}</div>
+            </div>
+          </div>
+          <div class="festival-list">
+            ${linkedFestivals.length
+              ? linkedFestivals.map((festival) => `<button class="festival-chip" data-festival-id="${festival.id}">${festival.title}</button>`).join("")
+              : `<span class="footnote">현재 파일럿에 연결된 대표 축제 샘플이 없습니다.</span>`}
+          </div>
+        </section>
+
+        <section class="info-card">
+          <div class="section-title">연도별 개화 추이</div>
+          <div id="trendChart" class="chart"></div>
+        </section>
+
+        <section class="info-card">
+          <div class="section-title">개화 분포와 축제 기간 범위</div>
+          <div id="distributionChart" class="chart dist-chart"></div>
+        </section>
+      `;
+
+      panelBody.querySelectorAll("[data-festival-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const festival = FESTIVALS.find((item) => item.id === button.dataset.festivalId);
+          if (festival) renderPanelForFestival(festival);
+        });
+      });
+
+      renderTrendChart(station);
+      renderDistributionChart(station);
+    }
+
+    function renderPanelForFestival(festival) {
+      const station = stationById.get(festival.station_id);
+      renderPanelForStation(station, festival);
+    }
+
+    function stationStyle(feature) {
+      const station = feature.get("payload");
+      const tone = getDeltaTone(station.bloom_delta);
+      return new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: station.stn_id === 108 ? 10 : 8,
+          fill: new ol.style.Fill({ color: tone.color }),
+          stroke: new ol.style.Stroke({ color: "#ffffff", width: 2.5 })
+        }),
+        text: new ol.style.Text({
+          text: station.stn_name,
+          offsetY: 18,
+          font: "700 11px 'Noto Sans KR', sans-serif",
+          fill: new ol.style.Fill({ color: "#7d1740" }),
+          stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.95)", width: 3 })
+        })
+      });
+    }
+
+    function festivalStyle(feature) {
+      const festival = feature.get("payload");
+      return new ol.style.Style({
+        image: new ol.style.RegularShape({
+          points: 4,
+          radius: 9,
+          angle: Math.PI / 4,
+          fill: new ol.style.Fill({ color: "#c42b68" }),
+          stroke: new ol.style.Stroke({ color: "#ffffff", width: 2.2 })
+        }),
+        text: new ol.style.Text({
+          text: festival.title.split(" ")[0],
+          offsetY: 18,
+          font: "700 11px 'Noto Sans KR', sans-serif",
+          fill: new ol.style.Fill({ color: "#7d1740" }),
+          stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.95)", width: 3 })
+        })
+      });
+    }
+
+    const baseLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_API_KEY}/Base/{z}/{y}/{x}.png`,
+        crossOrigin: "anonymous",
+        maxZoom: 19
+      })
+    });
+
+    const stationLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({
+        features: STATIONS.map((station) => new ol.Feature({
+          geometry: new ol.geom.Point(ol.proj.fromLonLat([station.lon, station.lat])),
+          payload: station,
+          type: "station"
+        }))
+      }),
+      style: stationStyle
+    });
+
+    const festivalLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({
+        features: FESTIVALS.map((festival) => new ol.Feature({
+          geometry: new ol.geom.Point(ol.proj.fromLonLat([festival.lon, festival.lat])),
+          payload: festival,
+          type: "festival"
+        }))
+      }),
+      style: festivalStyle
+    });
+
+    const map = new ol.Map({
+      target: "map",
+      layers: [baseLayer, stationLayer, festivalLayer],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([127.8, 36.2]),
+        zoom: 7,
+        minZoom: 6,
+        maxZoom: 18
+      })
+    });
+
+    map.on("singleclick", (event) => {
+      map.forEachFeatureAtPixel(event.pixel, (feature) => {
+        const type = feature.get("type");
+        const payload = feature.get("payload");
+        if (type === "festival") renderPanelForFestival(payload);
+        if (type === "station") renderPanelForStation(payload);
+        return true;
+      });
+    });
+
+    map.on("pointermove", (event) => {
+      map.getTargetElement().style.cursor = map.hasFeatureAtPixel(event.pixel) ? "pointer" : "";
+    });
+
+    renderPanelForFestival(FESTIVALS[0]);
+
+    window.addEventListener("resize", () => {
+      if (trendChart) trendChart.resize();
+      if (distributionChart) distributionChart.resize();
+    });
+  </script>
+</body>
+</html>
