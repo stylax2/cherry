@@ -248,6 +248,9 @@ el.loadFestivalsBtn.addEventListener("click", loadCherryFestivals);
 
 el.clearFestivalsBtn.addEventListener("click", () => {
   festivalSource.clear();
+  clickOverlay.setPosition(undefined);
+  closeForecastModal();
+  hideFestivalCard();
   el.clearFestivalsBtn.disabled = true;
   setStatus("축제 초기화", "ok");
 });
@@ -423,11 +426,20 @@ el.clearSearchBtn.addEventListener("click", () => {
 
 // ── Map click ─────────────────────────────────────────────────────────────────
 map.on("click", async (event) => {
-  const feature = map.forEachFeatureAtPixel(event.pixel, (c) => c);
+  const festivalsActive = festivalSource.getFeatures().length > 0;
+
+  // 모바일은 손가락 굵기 고려해 인식 반경 확대
+  const hitTolerance = isMobile() ? 22 : 8;
+  const feature = map.forEachFeatureAtPixel(event.pixel, (c) => c, { hitTolerance });
+
   if (feature && feature.get("featureType") === "festival") {
     await selectFestival(feature);
     return;
   }
+
+  // 축제 마커 표출 중이면 일반 위치 선택 비활성화
+  if (festivalsActive) return;
+
   const [lon, lat] = ol.proj.toLonLat(event.coordinate);
   clickOverlay.setPosition(event.coordinate);
   el.clearSelectionBtn.disabled = false;
