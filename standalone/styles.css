@@ -695,61 +695,91 @@ button, input { font: inherit; border: none; outline: none; }
 
 /* ── Mobile (≤ 600px) ─────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  /* Topbar: full-width sticky at top, 2-row layout */
+
+  /* ── 상단바: 브랜드 + 지도모드만 표시 ── */
   .topbar {
     top: 0; left: 0; right: 0;
-    border-radius: 0 0 18px 18px;
+    border-radius: 0 0 16px 16px;
     border-left: none; border-right: none; border-top: none;
     padding: 10px 14px 8px;
-    gap: 6px; flex-wrap: wrap;
+    gap: 8px; flex-wrap: nowrap;
+    align-items: center;
   }
   .brand { flex: 1; }
   .brand-badge { display: none; }
   .brand strong { font-size: 13px; }
   .topbar-right { flex-shrink: 0; }
-  .status-line { display: none; }
-  /* Map mode: icons only */
+  .status-line { font-size: 10px; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .map-mode span { display: none; }
-  .map-mode { padding: 0 10px; min-width: 36px; }
+  .map-mode { padding: 0 10px; min-width: 34px; }
 
-  /* Control bar: horizontally scrollable, no wrap */
+  /* ── 하단 컨트롤 바 ── */
   .control-bar {
-    order: 3; width: 100%;
-    overflow-x: auto; flex-wrap: nowrap;
-    scrollbar-width: none; -ms-overflow-style: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    /* topbar에서 분리 — order/width 리셋 */
+    order: unset; width: auto; flex-wrap: wrap;
+    overflow-x: unset;
+    /* 2행 레이아웃 */
+    display: flex; flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--glass-border);
+    box-shadow: 0 -4px 20px rgba(15,23,42,0.08);
   }
-  .ctrl-section--search { min-width: 210px; flex: none; }
 
-  /* Modal: bottom sheet */
+  /* 축제 + 지역선택: 1행, 동등 분할 */
+  .ctrl-section:not(.ctrl-section--search) { flex: 1; }
+  .ctrl-section:not(.ctrl-section--search) .ctrl-primary { width: 100%; justify-content: center; }
+
+  /* 구분선 숨김 */
+  .ctrl-divider { display: none; }
+
+  /* 검색: 2행, 전체 너비 */
+  .ctrl-section--search {
+    flex: none; width: 100%;
+    min-width: unset; max-width: none;
+  }
+  .search-form { width: 100%; }
+  .search-input-wrapper { flex: 1; }
+
+  /* 지도: 하단 바 높이만큼 여백 (약 112px) */
+  .map-stage { bottom: 112px; }
+
+  /* ── 모달: 하단 바 위 바텀시트 ── */
   .forecast-modal {
     width: 100% !important; max-width: 100% !important;
     border-radius: 20px 20px 0 0 !important;
-    max-height: 82vh;
+    max-height: 72vh;
     top: auto !important; left: 0 !important; right: 0 !important;
-    bottom: 0;
-    transform: translateY(110%) !important;
+    bottom: calc(112px + env(safe-area-inset-bottom));
+    transform: translateY(calc(100% + 120px)) !important;
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
     opacity: 1 !important;
   }
   .forecast-modal.is-visible { transform: translateY(0) !important; }
 
-  /* Modal handle: bigger tap target, centered pill */
+  /* 모달 핸들: 드래그 표시 pill */
   .modal-handle { padding: 14px 18px 10px; }
   .modal-handle::before {
     content: ""; display: block;
-    width: 36px; height: 4px;
-    border-radius: 99px;
+    width: 36px; height: 4px; border-radius: 99px;
     background: rgba(15,23,42,0.18);
     margin: 0 auto 10px;
   }
 
-  /* Content grids: single column */
+  /* 콘텐츠 그리드: 1열 */
   .detail-grid { grid-template-columns: 1fr; }
   .fic-grid { grid-template-columns: 1fr; }
   .fic-item:nth-child(odd) { border-right: none; }
   .fic-item:nth-last-child(-n+2) { border-bottom: 1px solid rgba(240,106,157,0.1); }
   .fic-item:last-child { border-bottom: none; }
 
-  /* Hide map hint */
+  /* 지도 힌트 숨김 */
   .map-hint { display: none; }
 }
