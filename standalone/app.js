@@ -1,7 +1,7 @@
 // ── Configuration ─────────────────────────────────────────────────────────────
 const VWORLD_KEY        = "4B1C42DC-2A7F-302B-AB97-270733346A4F";
 const VWORLD_SEARCH_KEY = "9B3E51CE-4BB6-3606-937B-39AFF211F204";
-const GRID_DATA_URL     = "./data/cherry_backend_lookup_2026.csv";
+const GRID_DATA_URL     = "https://github.com/stylax2/cherry/releases/download/v1.0/cherry_backend_lookup_2026.csv";
 const FESTIVAL_KEYWORD  = "벚꽃축제";
 const FORECAST_YEAR     = 2026;
 

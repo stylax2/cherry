@@ -1,0 +1,7 @@
+{
+  "outputDirectory": "standalone",
+  "rewrites": [
+    { "source": "/api/festivals",       "destination": "/api/festivals" },
+    { "source": "/api/festival-detail", "destination": "/api/festival-detail" }
+  ]
+}
