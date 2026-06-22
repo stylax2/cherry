@@ -263,6 +263,16 @@ button, input { font: inherit; border: none; outline: none; }
 
 .ctrl-primary:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
+.ctrl-primary.ctrl-layer {
+  background: linear-gradient(135deg, #0f766e, #2f855a);
+  box-shadow: 0 8px 26px rgba(15, 118, 110, 0.18);
+}
+
+.ctrl-primary.ctrl-layer.ctrl-active {
+  background: linear-gradient(135deg, #b91c1c, var(--primary));
+  box-shadow: 0 10px 28px rgba(210,54,105,0.30);
+}
+
 /* Reset (×) button */
 .ctrl-reset {
   display: inline-flex; align-items: center; justify-content: center;
@@ -385,6 +395,72 @@ button, input { font: inherit; border: none; outline: none; }
 .hint-text { display: flex; flex-direction: column; gap: 3px; }
 .hint-text strong { color: var(--primary); font-size: 12px; font-weight: 800; }
 .hint-text span   { color: var(--muted);   font-size: 11px; font-weight: 500; line-height: 1.5; }
+
+.prediction-legend {
+  position: absolute;
+  right: 20px;
+  bottom: 148px;
+  z-index: 11;
+  width: 230px;
+  max-height: min(52vh, 420px);
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-md);
+  overflow: auto;
+}
+
+.prediction-legend[hidden] { display: none; }
+
+.prediction-legend-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(15,23,42,0.08);
+}
+
+.prediction-legend-head strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.prediction-legend-head span,
+.prediction-legend p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.prediction-legend-list {
+  display: grid;
+  gap: 8px;
+}
+
+.prediction-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.prediction-swatch {
+  width: 32px;
+  height: 12px;
+  flex: 0 0 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.82);
+  box-shadow: 0 2px 6px rgba(15,23,42,0.14);
+}
 
 /* Click marker */
 .click-marker {
@@ -800,4 +876,5 @@ button, input { font: inherit; border: none; outline: none; }
 
   /* 지도 힌트 숨김 */
   .map-hint { display: none; }
+  .prediction-legend { display: none; }
 }

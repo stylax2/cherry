@@ -89,6 +89,22 @@
 
           <div class="ctrl-divider"></div>
 
+          <!-- 벚꽃 개화 예측 지도 -->
+          <div class="ctrl-section">
+            <button class="ctrl-primary ctrl-layer" id="predictionLayerBtn" type="button" aria-pressed="false">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M3 12h18"></path>
+                <path d="M3 18h18"></path>
+                <path d="M7 3v18"></path>
+                <path d="M14 3v18"></path>
+              </svg>
+              <span>벚꽃 개화 예측 지도</span>
+            </button>
+          </div>
+
+          <div class="ctrl-divider"></div>
+
           <!-- 주소 검색 -->
           <div class="ctrl-section ctrl-section--search">
             <form class="search-form" id="addressForm" aria-label="주소 검색">
@@ -140,6 +156,7 @@
       <!-- Map Stage -->
       <main class="map-stage" aria-label="벚꽃축제 및 만개 예측 지도">
         <div id="map"></div>
+        <div class="prediction-legend" id="predictionLegend" hidden></div>
         <div class="map-hint">
           <span class="hint-icon">💡</span>
           <div class="hint-text">

@@ -2,6 +2,7 @@
 const VWORLD_KEY        = "4B1C42DC-2A7F-302B-AB97-270733346A4F";
 const VWORLD_SEARCH_KEY = "9B3E51CE-4BB6-3606-937B-39AFF211F204";
 const GRID_DATA_URL     = "./data/cherry_backend_lookup_2026.csv";
+const PREDICTION_RASTER_META = "./data/cherry_pred_raster_2026.json";
 const FESTIVAL_KEYWORD  = "벚꽃축제";
 const FORECAST_YEAR     = 2026;
 
@@ -167,6 +168,9 @@ const festivalLayer  = new ol.layer.Vector({
   style: (feature) => buildFestivalStyle(feature),
 });
 
+let predictionRasterLayer = null;
+let predictionRasterMeta = null;
+
 const markerElement = document.createElement("div");
 markerElement.className = "click-marker";
 
@@ -188,6 +192,8 @@ const el = {
   clearFestivalsBtn:document.getElementById("clearFestivalsBtn"),
   selectModeBtn:   document.getElementById("selectModeBtn"),
   clearSelectionBtn:document.getElementById("clearSelectionBtn"),
+  predictionLayerBtn:document.getElementById("predictionLayerBtn"),
+  predictionLegend: document.getElementById("predictionLegend"),
   addressForm:     document.getElementById("addressForm"),
   addressInput:    document.getElementById("addressInput"),
   clearSearchBtn:  document.getElementById("clearSearchBtn"),
@@ -242,6 +248,72 @@ document.querySelectorAll(".map-mode").forEach((btn) => {
     btn.classList.add("is-active");
   });
 });
+
+// ── Prediction raster layer ───────────────────────────────────────────────────
+el.predictionLayerBtn.addEventListener("click", togglePredictionRasterLayer);
+loadPredictionRasterLayer();
+
+async function loadPredictionRasterLayer() {
+  try {
+    const response = await fetch(PREDICTION_RASTER_META);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    predictionRasterMeta = await response.json();
+    predictionRasterLayer = new ol.layer.Image({
+      visible: false,
+      opacity: Number(predictionRasterMeta.opacity) || 0.62,
+      source: new ol.source.ImageStatic({
+        url: `./data/${predictionRasterMeta.image}`,
+        imageExtent: ol.proj.transformExtent(predictionRasterMeta.extent, "EPSG:4326", "EPSG:3857"),
+        projection: "EPSG:3857",
+        crossOrigin: "anonymous",
+      }),
+    });
+    map.getLayers().insertAt(3, predictionRasterLayer);
+    renderPredictionLegend(predictionRasterMeta);
+  } catch (error) {
+    console.error("[벚꽃 개화 예측 지도 로딩 실패]", error);
+    el.predictionLayerBtn.disabled = true;
+    el.predictionLayerBtn.title = "벚꽃 개화 예측 지도를 불러오지 못했습니다.";
+  }
+}
+
+function togglePredictionRasterLayer() {
+  if (!predictionRasterLayer) return;
+  const nextVisible = !predictionRasterLayer.getVisible();
+  predictionRasterLayer.setVisible(nextVisible);
+  el.predictionLayerBtn.classList.toggle("ctrl-active", nextVisible);
+  el.predictionLayerBtn.setAttribute("aria-pressed", String(nextVisible));
+  el.predictionLegend.hidden = !nextVisible;
+  setStatus(nextVisible ? "개화 예측 지도 표시" : "개화 예측 지도 숨김", "ok");
+}
+
+function renderPredictionLegend(meta) {
+  const legend = Array.isArray(meta.legend) ? meta.legend : [];
+  if (!legend.length) {
+    el.predictionLegend.innerHTML = `
+      <div class="prediction-legend-head">
+        <strong>벚꽃 개화 예측 지도</strong>
+      </div>
+      <p>범례 정보 없음</p>
+    `;
+    return;
+  }
+
+  el.predictionLegend.innerHTML = `
+    <div class="prediction-legend-head">
+      <strong>벚꽃 개화 예측 지도</strong>
+      <span>${meta.year || FORECAST_YEAR}년 · ${meta.bin_days || 5}일 단위</span>
+    </div>
+    <div class="prediction-legend-list">
+      ${legend.map((item) => `
+        <div class="prediction-legend-item">
+          <span class="prediction-swatch" style="background:${item.color}"></span>
+          <span>${item.label}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
 
 // ── Festival section ───────────────────────────────────────────────────────────
 el.loadFestivalsBtn.addEventListener("click", loadCherryFestivals);

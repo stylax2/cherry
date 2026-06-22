@@ -1,0 +1,85 @@
+{
+  "year": 2026,
+  "source": "cherry_backend_lookup_2026.csv",
+  "image": "cherry_pred_raster_2026.png",
+  "bin_days": 5,
+  "opacity": 0.62,
+  "extent": [
+    124.60986111117947,
+    33.11255901001788,
+    130.919848734776,
+    38.61346940698211
+  ],
+  "doy_range": [
+    84,
+    134
+  ],
+  "legend": [
+    {
+      "start_doy": 80,
+      "end_doy": 84,
+      "label": "3/21 ~ 3/25",
+      "color": "#b2185b"
+    },
+    {
+      "start_doy": 85,
+      "end_doy": 89,
+      "label": "3/26 ~ 3/30",
+      "color": "#d64f83"
+    },
+    {
+      "start_doy": 90,
+      "end_doy": 94,
+      "label": "3/31 ~ 4/04",
+      "color": "#f08aa7"
+    },
+    {
+      "start_doy": 95,
+      "end_doy": 99,
+      "label": "4/05 ~ 4/09",
+      "color": "#f7b267"
+    },
+    {
+      "start_doy": 100,
+      "end_doy": 104,
+      "label": "4/10 ~ 4/14",
+      "color": "#f6d55c"
+    },
+    {
+      "start_doy": 105,
+      "end_doy": 109,
+      "label": "4/15 ~ 4/19",
+      "color": "#9bcf72"
+    },
+    {
+      "start_doy": 110,
+      "end_doy": 114,
+      "label": "4/20 ~ 4/24",
+      "color": "#4fb3a2"
+    },
+    {
+      "start_doy": 115,
+      "end_doy": 119,
+      "label": "4/25 ~ 4/29",
+      "color": "#3d8fc6"
+    },
+    {
+      "start_doy": 120,
+      "end_doy": 124,
+      "label": "4/30 ~ 5/04",
+      "color": "#5266b8"
+    },
+    {
+      "start_doy": 125,
+      "end_doy": 129,
+      "label": "5/05 ~ 5/09",
+      "color": "#6b4c9a"
+    },
+    {
+      "start_doy": 130,
+      "end_doy": 134,
+      "label": "5/10 ~ 5/14",
+      "color": "#4b2f74"
+    }
+  ]
+}
