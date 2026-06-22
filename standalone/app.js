@@ -262,8 +262,8 @@ async function loadPredictionRasterLayer() {
       visible: false,
       opacity: Number(predictionRasterMeta.opacity) || 0.62,
       source: new ol.source.ImageStatic({
-        url: `./data/${predictionRasterMeta.image}`,
-        imageExtent: ol.proj.transformExtent(predictionRasterMeta.extent, "EPSG:4326", "EPSG:3857"),
+        url: getPredictionRasterUrl(predictionRasterMeta),
+        imageExtent: getPredictionRasterExtent(predictionRasterMeta),
         projection: "EPSG:3857",
         crossOrigin: "anonymous",
       }),
@@ -275,6 +275,16 @@ async function loadPredictionRasterLayer() {
     el.predictionLayerBtn.disabled = true;
     el.predictionLayerBtn.title = "벚꽃 개화 예측 지도를 불러오지 못했습니다.";
   }
+}
+
+function getPredictionRasterUrl(meta) {
+  const cacheKey = encodeURIComponent(`${meta.projection || "EPSG:4326"}-${meta.resolution_m || "degree"}`);
+  return `./data/${meta.image}?v=${cacheKey}`;
+}
+
+function getPredictionRasterExtent(meta) {
+  if (meta.projection === "EPSG:3857") return meta.extent;
+  return ol.proj.transformExtent(meta.extent, "EPSG:4326", "EPSG:3857");
 }
 
 function togglePredictionRasterLayer() {

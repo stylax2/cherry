@@ -1,5 +1,6 @@
 import csv
 import json
+import math
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -15,10 +16,10 @@ STANDALONE_OUT_DIR = ROOT / "standalone" / "data"
 STANDALONE_PNG_OUT = STANDALONE_OUT_DIR / PNG_OUT.name
 STANDALONE_JSON_OUT = STANDALONE_OUT_DIR / JSON_OUT.name
 
-DX = 0.008988586
-DY = 0.007285974
 BIN_SIZE = 5
 YEAR = 2026
+WEB_MERCATOR_RADIUS = 6378137.0
+RASTER_RESOLUTION_M = 500.0
 
 COLORS = [
     "#b2185b",
@@ -46,15 +47,26 @@ def hex_to_rgba(color: str, alpha: int = 188) -> tuple[int, int, int, int]:
     return (int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16), alpha)
 
 
+def lonlat_to_web_mercator(lon: float, lat: float) -> tuple[float, float]:
+    x = WEB_MERCATOR_RADIUS * math.radians(lon)
+    y = WEB_MERCATOR_RADIUS * math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))
+    return x, y
+
+
 def main() -> None:
     rows = []
     with SOURCE.open("r", encoding="utf-8-sig", newline="") as file:
         reader = csv.DictReader(file)
         for row in reader:
+            lon = float(row["lon"])
+            lat = float(row["lat"])
+            x, y = lonlat_to_web_mercator(lon, lat)
             rows.append(
                 {
-                    "lon": float(row["lon"]),
-                    "lat": float(row["lat"]),
+                    "lon": lon,
+                    "lat": lat,
+                    "x": x,
+                    "y": y,
                     "doy": int(round(float(row["pred_doy"]))),
                 }
             )
@@ -63,11 +75,21 @@ def main() -> None:
     max_lon = max(row["lon"] for row in rows)
     min_lat = min(row["lat"] for row in rows)
     max_lat = max(row["lat"] for row in rows)
+    min_x = min(row["x"] for row in rows)
+    max_x = max(row["x"] for row in rows)
+    min_y = min(row["y"] for row in rows)
+    max_y = max(row["y"] for row in rows)
     min_doy = min(row["doy"] for row in rows)
     max_doy = max(row["doy"] for row in rows)
 
-    width = round((max_lon - min_lon) / DX) + 1
-    height = round((max_lat - min_lat) / DY) + 1
+    extent = [
+        min_x - RASTER_RESOLUTION_M,
+        min_y - RASTER_RESOLUTION_M,
+        max_x + RASTER_RESOLUTION_M,
+        max_y + RASTER_RESOLUTION_M,
+    ]
+    width = math.ceil((extent[2] - extent[0]) / RASTER_RESOLUTION_M)
+    height = math.ceil((extent[3] - extent[1]) / RASTER_RESOLUTION_M)
     image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     pixels = image.load()
 
@@ -89,21 +111,16 @@ def main() -> None:
         color_index += 1
 
     for row in rows:
-        col = round((row["lon"] - min_lon) / DX)
-        pixel_row = round((max_lat - row["lat"]) / DY)
+        col = round((row["x"] - extent[0]) / RASTER_RESOLUTION_M)
+        pixel_row = round((extent[3] - row["y"]) / RASTER_RESOLUTION_M)
         bin_index = min((row["doy"] - bin_start) // BIN_SIZE, len(bins) - 1)
-        if 0 <= col < width and 0 <= pixel_row < height:
-            pixels[col, pixel_row] = hex_to_rgba(bins[bin_index]["color"])
-
-    # Expand sparse point pixels into small cells so the layer reads as a continuous 1 km grid.
-    image = image.resize((width * 2, height * 2), resample=Image.Resampling.NEAREST)
-
-    extent = [
-        min_lon - DX / 2,
-        min_lat - DY / 2,
-        max_lon + DX / 2,
-        max_lat + DY / 2,
-    ]
+        color = hex_to_rgba(bins[bin_index]["color"])
+        for dx in (0, 1):
+            for dy in (0, 1):
+                x = col + dx
+                y = pixel_row + dy
+                if 0 <= x < width and 0 <= y < height:
+                    pixels[x, y] = color
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     STANDALONE_OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -116,7 +133,15 @@ def main() -> None:
             "image": PNG_OUT.name,
             "bin_days": BIN_SIZE,
             "opacity": 0.62,
+            "projection": "EPSG:3857",
             "extent": extent,
+            "lonlat_extent": [
+                min_lon,
+                min_lat,
+                max_lon,
+                max_lat,
+            ],
+            "resolution_m": RASTER_RESOLUTION_M,
             "doy_range": [min_doy, max_doy],
             "legend": bins,
         },
