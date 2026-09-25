@@ -1,5 +1,5 @@
 // ── Configuration ─────────────────────────────────────────────────────────────
-const VWORLD_KEY        = "4B1C42DC-2A7F-302B-AB97-270733346A4F";
+const VWORLD_KEY        = "143AD4D6-B33F-4781-B3A3-02A709E9E5A7";
 const VWORLD_SEARCH_KEY = "9B3E51CE-4BB6-3606-937B-39AFF211F204";
 const GRID_DATA_URL     = "./data/cherry_backend_lookup_2026.csv";
 const PREDICTION_RASTER_META = "./data/cherry_pred_raster_2026.json";
